@@ -19,8 +19,8 @@ TODO: must be willing to accept override on the wires, and adjust state accordin
 
 //location of upper and lowe limit in which the flap is considered to be in a flap position.
 //TBD -= adjust as needed.
-int16_t flap_upper_values[] = {100, 200, 400, 500};
-int16_t flap_lower_values[] = {80, 180, 380, 480};
+int16_t flap_upper_values[] = {90, 135, 180, 225, 270, 320, 365};
+int16_t flap_lower_values[] = {85, 125, 170, 215, 260, 310, 355};
 uint8_t flap_state, closest_flap = 0;
 
 uint32_t t0;
