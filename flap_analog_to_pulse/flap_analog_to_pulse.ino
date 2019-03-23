@@ -74,6 +74,9 @@ void determine_closest_flap_state(uint16_t sensor_value) {
 }
 
 
+/*
+ * update the wheel brake status variable based on pot.
+ */
 void update_wheelbrake_status() {
 	uint16_t wheelbrake_value = analogRead(AIRBRAKE_POT);
 	
@@ -91,7 +94,7 @@ void update_wheelbrake_status() {
 }
 
 /*
- * check and the wheel brake value and update the switch if necessary
+ * update the switch if necessary
  */
 void update_wheelbrake_switch() {
 	bool old_wheelbrake_status = wheelbrake_status;
