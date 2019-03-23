@@ -16,12 +16,22 @@ TODO: must be willing to accept override on the wires, and adjust state accordin
 // lines to be switched in response to flap handle position.
 #define FLAPS_UP 4
 #define FLAPS_DOWN 5
+#define FLAP_POT A0
+
+// connected to pin 7 on the D9
+#define WHEELBRAKE_SWITCH 8
+#define AIRBRAKE_POT A2
 
 //location of upper and lowe limit in which the flap is considered to be in a flap position.
 //TBD -= adjust as needed.
 int16_t flap_upper_values[] = {90, 135, 180, 225, 270, 320, 365};
 int16_t flap_lower_values[] = {85, 125, 170, 215, 260, 310, 355};
 uint8_t flap_state, closest_flap = 0;
+
+// values above (below?) the wheel brake pin is pulled low.
+// full closed ~433, fully open ~ 895, setting to activate at 75% so 780
+int16_t wheelbrake_activate_limit = 780;
+bool wheelbrake_status = true;
 
 uint32_t t0;
 
@@ -61,6 +71,42 @@ void determine_closest_flap_state(uint16_t sensor_value) {
 	Serial.print("best flap = ");
 	Serial.println(closest_flap);
 	*/
+}
+
+
+void update_wheelbrake_status() {
+	uint16_t wheelbrake_value = analogRead(AIRBRAKE_POT);
+	
+	/*
+	Serial.print("wheel brake pot = ");
+	Serial.println(wheelbrake_value);
+	*/
+	
+	if (wheelbrake_value > wheelbrake_activate_limit) {
+		wheelbrake_status = true;
+	}
+	else {
+		wheelbrake_status = false;
+	}
+}
+
+/*
+ * check and the wheel brake value and update the switch if necessary
+ */
+void update_wheelbrake_switch() {
+	bool old_wheelbrake_status = wheelbrake_status;
+	update_wheelbrake_status();
+	/*
+	Serial.print("old wheel brake ");
+	Serial.print(old_wheelbrake_status);
+	Serial.print(" new ");
+	Serial.println(wheelbrake_status);
+	*/
+	if (wheelbrake_status != old_wheelbrake_status) {
+		digitalWrite(WHEELBRAKE_SWITCH, !wheelbrake_status);
+		Serial.print("Changed wheel brake to ");
+		Serial.println(wheelbrake_status);
+	}
 }
 
 /* check if we're within some fraction of the range near the nominal value
@@ -110,24 +156,32 @@ void setup() {
 
 	delay(1000); // just to get the serial monitor time to wake up
 	Serial.println("Begin setup");
-	pinMode(A0, INPUT);
+	pinMode(FLAP_POT, INPUT);
+	pinMode(AIRBRAKE_POT, INPUT);
 	pinMode(FLAPS_DOWN, OUTPUT);
 	pinMode(FLAPS_UP, OUTPUT);
+	pinMode(WHEELBRAKE_SWITCH, OUTPUT);
 	
 	digitalWrite(FLAPS_DOWN, LOW);
 	digitalWrite(FLAPS_UP, LOW);
+	digitalWrite(WHEELBRAKE_SWITCH, LOW);
 	delay(500);
 	digitalWrite(FLAPS_DOWN, HIGH);
 	digitalWrite(FLAPS_UP, HIGH);
+	digitalWrite(WHEELBRAKE_SWITCH, HIGH);
 	
 	// to start, just set it to whichever is closest, even if it's not in range.
-	sensor_value = analogRead(A0);
+	sensor_value = analogRead(FLAP_POT);
 	determine_closest_flap_state(sensor_value);
 	flap_state = closest_flap;
 	Serial.print("initial sensor value = ");
 	Serial.print(sensor_value);
 	Serial.print(", therfore initial flap state = ");
 	Serial.println(flap_state);
+	
+	update_wheelbrake_status();
+	Serial.print("initial wheel brake status = ");
+	Serial.println(wheelbrake_status);
 	
 	t0 = (uint32_t) millis();
 	Serial.println("End setup");
@@ -137,8 +191,9 @@ void setup() {
 void loop() {
 	uint16_t sensor_value;
 	// read the value from the sensor:
-	sensor_value = analogRead(A0);
+	sensor_value = analogRead(FLAP_POT);
 	update_flap_state(sensor_value);
+	update_wheelbrake_switch();
 	/*
 	Serial.print(millis() - t0);
 	Serial.print(", ");
